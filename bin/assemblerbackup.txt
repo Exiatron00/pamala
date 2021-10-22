@@ -1,0 +1,135 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_timer.h>
+const int SCREEN_WIDTH  = 640;
+const int SCREEN_HEIGHT = 480;
+
+int  i,j;
+int x = 0;
+
+void assemble() {
+
+
+}
+
+void tokenize(char* instruction) {
+    
+    printf("TOKENIZER RECEIVED: %s", instruction);
+    int z=0;
+    char* tokenArray[60];
+    tokenArray[z] = strtok(instruction," \n");
+    while(tokenArray[z]!=NULL) {
+        printf("TOKEN: %s\n", tokenArray[z]);
+        tokenArray[++z] = strtok(NULL," \n");
+    }
+}
+void clean(char* stream, int lineCount) {
+    for(i=0;stream[i]==' '||stream[i]=='\t';i++);
+    for(j=0;stream[i];i++) {
+        stream[j++]=stream[i];
+    }
+    stream[j] = '\0';
+	for(i=0;stream[i]!='\0';i++) {
+        if(stream[i]!=' '&& stream[i]!='\t')
+            j=i;
+    } 
+    stream[j+1]='\0';
+    char* instruction[lineCount];
+    instruction[x] = stream;
+    printf("\nCLEANER RECEIVED: %s", instruction[x]);
+    tokenize(instruction[x]);
+    x++;
+    
+
+}
+void fetch() {
+    int lineCount;
+    FILE *saveFile = fopen("savefile.txt","r");
+    if (saveFile == NULL ) {
+        perror("Savefile missing!");
+      
+    }
+    char lineBuffer[128];
+    while(fgets(lineBuffer,sizeof(lineBuffer),saveFile)!= NULL) {
+        lineCount++;
+        clean(lineBuffer, lineCount);
+    }
+}
+
+void logSDLError(char* msg) {
+    printf("error: %s %s", msg, SDL_GetError()); exit(1);
+}
+
+SDL_Texture* loadTexture(char* file, SDL_Renderer *ren) {
+    SDL_Texture *texture = NULL;
+    SDL_Surface *loadedImage = SDL_LoadBMP(file);
+    if (loadedImage != NULL) {
+        texture = SDL_CreateTextureFromSurface(ren,loadedImage);
+        SDL_FreeSurface(loadedImage);
+        if (texture == NULL ) {
+            logSDLError("CreateTextureFromSurface");
+        }
+    } else {
+        logSDLError("LoadBMP");
+    }
+    return texture;
+}
+
+void renderTexture(SDL_Texture *tex, SDL_Renderer *ren, int x , int y) {
+    SDL_Rect dst;
+    dst.x = x;
+    dst.y = y;
+    SDL_QueryTexture(tex, NULL, NULL, &dst.w, &dst.h);
+	SDL_RenderCopy(ren, tex, NULL, &dst);    
+}
+
+int SDL_main(int argc, char *argv[]) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0 ) {
+        logSDLError("SDL_Init");
+    }
+    SDL_Window *window = SDL_CreateWindow("Assembler", 100,100, SCREEN_WIDTH,SCREEN_HEIGHT,SDL_WINDOW_SHOWN);
+    if (window == NULL) {
+        logSDLError("CreateWindow");
+        SDL_Quit();
+        return 1;
+    }
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (renderer == NULL) {
+        logSDLError("CreateRenderer");
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    
+    
+    SDL_Texture *image = loadTexture("image.bmp",renderer);
+    SDL_Texture *background = loadTexture("background.bmp",renderer);
+    if (background == NULL || image == NULL) {
+        SDL_Quit();
+        return 1;
+    }
+	for (int i = 0; i < 3; ++i) {
+	    SDL_RenderClear(renderer);
+
+	    int bW, bH;
+	    SDL_QueryTexture(background, NULL, NULL, & bW, & bH);
+	    renderTexture(background, renderer, 0, 0);
+	    renderTexture(background, renderer, bW, 0);
+	    renderTexture(background, renderer, 0, bH);
+	    renderTexture(background, renderer, bW, bH);
+
+	    int iW, iH;
+	    SDL_QueryTexture(image, NULL, NULL, & iW, & iH);
+	    int x = SCREEN_WIDTH / 2 - iW / 2;
+	    int y = SCREEN_HEIGHT / 2 - iH / 2;
+	    renderTexture(image, renderer, x, y);
+
+	    SDL_RenderPresent(renderer);
+	    SDL_Delay(1000);
+	}
+	//cleanup(background, image, renderer, window);
+	SDL_Quit();
+}

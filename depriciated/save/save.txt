@@ -1,0 +1,13 @@
+@
+ADD
+SAV D
+Label:
+MOV RIGHT DOWN h
+ADD 4
+SWP
+SAV
+ADD
+OUT
+HLT
+A DAT
+DAT
